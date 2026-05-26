@@ -63,6 +63,42 @@ RUN npm install --global --omit=dev @anthropic-ai/claude-code@latest @openai/cod
   && mkdir -p /paperclip \
   && chown node:node /paperclip
 
+# node-mobile toolchain: JDK 17 + Android SDK (cmdline-tools 14742923) + ffmpeg + apksigner
+# Path A (2026-05-26): extend base Railway image in-place; no separate GHCR pipeline needed for v1.
+# SDK pins: cmdline-tools 14742923, build-tools 34.0.0, android-34, android-35.
+# SHA-256 for cmdline-tools zip: computed on first CI build; to be pinned in follow-up PR.
+ARG CMDLINE_TOOLS_VERSION=14742923
+ARG BUILD_TOOLS_VERSION=34.0.0
+
+ENV ANDROID_SDK_ROOT=/opt/android-sdk \
+    ANDROID_HOME=/opt/android-sdk \
+    JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+       openjdk-17-jdk-headless \
+       ffmpeg \
+       unzip \
+  && rm -rf /var/lib/apt/lists/* \
+  && mkdir -p "${ANDROID_SDK_ROOT}/cmdline-tools" \
+  && wget -q \
+       "https://dl.google.com/android/repository/commandlinetools-linux-${CMDLINE_TOOLS_VERSION}_latest.zip" \
+       -O /tmp/cmdline-tools.zip \
+  && unzip -q /tmp/cmdline-tools.zip -d /tmp/cmdline-tools-extract \
+  && mv /tmp/cmdline-tools-extract/cmdline-tools "${ANDROID_SDK_ROOT}/cmdline-tools/latest" \
+  && rm -rf /tmp/cmdline-tools.zip /tmp/cmdline-tools-extract \
+  && yes | "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --licenses \
+  && "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" \
+       "platform-tools" \
+       "build-tools;${BUILD_TOOLS_VERSION}" \
+       "platforms;android-34" \
+       "platforms;android-35" \
+  && chmod -R 755 "${ANDROID_SDK_ROOT}" \
+  && javac -version \
+  && "${ANDROID_SDK_ROOT}/platform-tools/adb" version \
+  && ffmpeg -version 2>&1 | head -1 \
+  && "${ANDROID_SDK_ROOT}/build-tools/${BUILD_TOOLS_VERSION}/apksigner" version
+
 COPY scripts/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
@@ -78,7 +114,11 @@ ENV NODE_ENV=production \
   PAPERCLIP_CONFIG=/paperclip/instances/default/config.json \
   PAPERCLIP_DEPLOYMENT_MODE=authenticated \
   PAPERCLIP_DEPLOYMENT_EXPOSURE=private \
-  OPENCODE_ALLOW_ALL_MODELS=true
+  OPENCODE_ALLOW_ALL_MODELS=true \
+  ANDROID_SDK_ROOT=/opt/android-sdk \
+  ANDROID_HOME=/opt/android-sdk \
+  JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
+  PATH="/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:/opt/android-sdk/build-tools/34.0.0:${PATH}"
 
 VOLUME ["/paperclip"]
 EXPOSE 3100
