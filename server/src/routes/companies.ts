@@ -11,6 +11,7 @@ import {
   feedbackTraceStatusSchema,
   feedbackVoteValueSchema,
   updateCompanyBrandingSchema,
+  updateCompanyCeoAgentSchema,
   updateCompanySchema,
 } from "@paperclipai/shared";
 import { badRequest, forbidden } from "../errors.js";
@@ -348,7 +349,7 @@ export function companyRoutes(db: Db, storage?: StorageService) {
       if (actorAgent.companyId !== companyId) {
         throw forbidden("Agent key cannot access another company");
       }
-      body = updateCompanyBrandingSchema.parse(req.body);
+      body = updateCompanyCeoAgentSchema.parse(req.body);
     } else {
       assertBoard(req);
       body = updateCompanySchema.parse(req.body);
