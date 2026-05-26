@@ -478,8 +478,15 @@ export type SecretBindingTargetType = (typeof SECRET_BINDING_TARGET_TYPES)[numbe
 export const SECRET_ACCESS_OUTCOMES = ["success", "failure"] as const;
 export type SecretAccessOutcome = (typeof SECRET_ACCESS_OUTCOMES)[number];
 
-export const STORAGE_PROVIDERS = ["local_disk", "s3"] as const;
+export const STORAGE_PROVIDERS = ["local_disk", "s3", "vercel_blob", "supabase_storage"] as const;
 export type StorageProvider = (typeof STORAGE_PROVIDERS)[number];
+export type StorageBackend = StorageProvider;
+
+export const ASSET_STATUSES = ["pending", "ready", "failed"] as const;
+export type AssetStatus = (typeof ASSET_STATUSES)[number];
+
+export const SCAN_STATUSES = ["pending", "clean", "infected", "waived"] as const;
+export type ScanStatus = (typeof SCAN_STATUSES)[number];
 
 export const BILLING_TYPES = [
   "metered_api",
