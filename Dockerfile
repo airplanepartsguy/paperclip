@@ -58,10 +58,18 @@ WORKDIR /app
 COPY --chown=node:node --from=build /app /app
 RUN npm install --global --omit=dev @anthropic-ai/claude-code@latest @openai/codex@latest opencode-ai \
   && apt-get update \
-  && apt-get install -y --no-install-recommends openssh-client jq \
+  && apt-get install -y --no-install-recommends openssh-client jq python3-pip python3-venv \
   && rm -rf /var/lib/apt/lists/* \
+  && python3 -m pip install --break-system-packages hermes-agent \
+  && hermes --version \
   && mkdir -p /paperclip \
   && chown node:node /paperclip
+
+# Bootstrap minimal Hermes config for the node user (HOME=/paperclip)
+RUN mkdir -p /paperclip/.hermes && \
+    printf 'model:\n  default: claude-sonnet-4-6\n  provider: anthropic\nagent:\n  max_turns: 100\n' \
+    > /paperclip/.hermes/config.yaml && \
+    chown -R node:node /paperclip/.hermes
 
 # node-mobile toolchain: JDK 17 + Android SDK (cmdline-tools 14742923) + ffmpeg + apksigner
 # Path A (2026-05-26): extend base Railway image in-place; no separate GHCR pipeline needed for v1.
