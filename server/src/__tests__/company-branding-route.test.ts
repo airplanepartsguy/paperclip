@@ -205,3 +205,117 @@ describe("PATCH /api/companies/:companyId/branding", () => {
     expect(mockCompanyService.update).not.toHaveBeenCalled();
   });
 });
+
+
+describe("PATCH /api/companies/:companyId — CEO agent (main route)", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.doUnmock("../routes/companies.js");
+    vi.doUnmock("../routes/authz.js");
+    vi.doUnmock("../middleware/index.js");
+    vi.clearAllMocks();
+  });
+
+  it("allows CEO agent to PATCH attachmentMaxBytes", async () => {
+    const base = createCompany();
+    const updated = { ...base, attachmentMaxBytes: 209715200 };
+    mockAgentService.getById.mockResolvedValue({
+      id: "agent-ceo",
+      companyId: "company-1",
+      role: "ceo",
+    });
+    mockCompanyService.getById.mockResolvedValue(base);
+    mockCompanyService.update.mockResolvedValue(updated);
+    const app = await createApp({
+      type: "agent",
+      agentId: "agent-ceo",
+      companyId: "company-1",
+      source: "agent_key",
+      runId: "run-1",
+    });
+
+    const res = await request(app)
+      .patch("/api/companies/company-1")
+      .send({ attachmentMaxBytes: 209715200 });
+
+    expect(res.status).toBe(200);
+    expect(mockCompanyService.update).toHaveBeenCalledWith(
+      "company-1",
+      expect.objectContaining({ attachmentMaxBytes: 209715200 }),
+    );
+  });
+
+  it("allows CEO agent to PATCH branding fields (regression)", async () => {
+    const base = createCompany();
+    mockAgentService.getById.mockResolvedValue({
+      id: "agent-ceo",
+      companyId: "company-1",
+      role: "ceo",
+    });
+    mockCompanyService.getById.mockResolvedValue(base);
+    mockCompanyService.update.mockResolvedValue({ ...base, brandColor: "#abcdef" });
+    const app = await createApp({
+      type: "agent",
+      agentId: "agent-ceo",
+      companyId: "company-1",
+      source: "agent_key",
+      runId: "run-1",
+    });
+
+    const res = await request(app)
+      .patch("/api/companies/company-1")
+      .send({ brandColor: "#abcdef" });
+
+    expect(res.status).toBe(200);
+    expect(mockCompanyService.update).toHaveBeenCalledWith(
+      "company-1",
+      expect.objectContaining({ brandColor: "#abcdef" }),
+    );
+  });
+
+  it("rejects CEO agent PATCH with disallowed governance fields (strict schema)", async () => {
+    mockAgentService.getById.mockResolvedValue({
+      id: "agent-ceo",
+      companyId: "company-1",
+      role: "ceo",
+    });
+    mockCompanyService.getById.mockResolvedValue(createCompany());
+    const app = await createApp({
+      type: "agent",
+      agentId: "agent-ceo",
+      companyId: "company-1",
+      source: "agent_key",
+      runId: "run-1",
+    });
+
+    const res = await request(app)
+      .patch("/api/companies/company-1")
+      .send({ status: "active" });
+
+    expect(res.status).toBe(400);
+    expect(mockCompanyService.update).not.toHaveBeenCalled();
+  });
+
+  it("rejects non-CEO agent PATCH with 403", async () => {
+    mockAgentService.getById.mockResolvedValue({
+      id: "agent-eng",
+      companyId: "company-1",
+      role: "engineer",
+    });
+    mockCompanyService.getById.mockResolvedValue(createCompany());
+    const app = await createApp({
+      type: "agent",
+      agentId: "agent-eng",
+      companyId: "company-1",
+      source: "agent_key",
+      runId: "run-1",
+    });
+
+    const res = await request(app)
+      .patch("/api/companies/company-1")
+      .send({ attachmentMaxBytes: 10485760 });
+
+    expect(res.status).toBe(403);
+    expect(mockCompanyService.update).not.toHaveBeenCalled();
+  });
+});

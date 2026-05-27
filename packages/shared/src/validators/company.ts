@@ -58,3 +58,24 @@ export const updateCompanyBrandingSchema = z
   );
 
 export type UpdateCompanyBranding = z.infer<typeof updateCompanyBrandingSchema>;
+
+export const updateCompanyCeoAgentSchema = z
+  .object({
+    name: z.string().min(1).optional(),
+    description: z.string().nullable().optional(),
+    brandColor: brandColorSchema,
+    logoAssetId: logoAssetIdSchema,
+    attachmentMaxBytes: attachmentMaxBytesSchema.optional(),
+  })
+  .strict()
+  .refine(
+    (value) =>
+      value.name !== undefined ||
+      value.description !== undefined ||
+      value.brandColor !== undefined ||
+      value.logoAssetId !== undefined ||
+      value.attachmentMaxBytes !== undefined,
+    "At least one field must be provided",
+  );
+
+export type UpdateCompanyCeoAgent = z.infer<typeof updateCompanyCeoAgentSchema>;
