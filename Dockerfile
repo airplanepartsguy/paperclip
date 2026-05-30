@@ -128,7 +128,6 @@ ENV NODE_ENV=production \
   JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
   PATH="/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:/opt/android-sdk/build-tools/34.0.0:${PATH}"
 
-VOLUME ["/paperclip"]
 EXPOSE 3100
 
 ENTRYPOINT ["docker-entrypoint.sh"]
